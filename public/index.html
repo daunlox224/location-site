@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Определение местоположения</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        #status { font-size: 20px; margin-bottom: 20px; }
+        #mapLink { display: none; font-size: 18px; }
+    </style>
+</head>
+<body>
+    <h1>Определение местоположения</h1>
+    <p id="status">Запрашиваем разрешение на местоположение...</p>
+    <a id="mapLink" target="_blank">Открыть местоположение на карте</a>
+
+<script>
+const status = document.getElementById("status");
+const mapLink = document.getElementById("mapLink");
+
+if (!navigator.geolocation) {
+    status.textContent = "Ваш браузер не поддерживает геолокацию.";
+} else {
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            try {
+                const response = await fetch("/location", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ latitude, longitude })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    status.textContent = "Местоположение получено.";
+                    mapLink.href = data.mapUrl;
+                    mapLink.style.display = "inline-block";
+                }
+            } catch (error) {
+                status.textContent = "Не удалось отправить местоположение.";
+                console.error(error);
+            }
+        },
+        (error) => {
+            if (error.code === 1) status.textContent = "Доступ к местоположению запрещён.";
+            else if (error.code === 2) status.textContent = "Местоположение определить не удалось.";
+            else status.textContent = "Произошла ошибка геолокации.";
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+</script>
+</body>
+</html>
